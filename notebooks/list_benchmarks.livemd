@@ -7,40 +7,47 @@ Mix.install([:benchee])
 ```
 
 ```elixir
-defmodule Custom do
-  def filter_map([], _), do: []
+defmodule Kore do
+  defp custom_filter_map([], _), do: []
 
-  def filter_map([head | tail], func) do
+  defp custom_filter_map([head | tail], func) do
     case func.(head) do
       false ->
-        filter_map(tail, func)
+        custom_filter_map(tail, func)
 
       {true, value} ->
-        [value | filter_map(tail, func)]
+        [value | custom_filter_map(tail, func)]
     end
   end
-end
-```
 
-```elixir
-list = Enum.to_list(1..10_000)
+  def custom_run(list) do
+    custom_filter_map(list, fn x ->
+      if rem(x, 2) == 0 do
+        {true, x * x}
+      else
+        false
+      end
+    end)
+  end
 
-Benchee.run(%{
-  "for" => fn ->
+  def for(list) do
     for x <- list, rem(x, 2) == 0 do
       x * x
     end
-  end,
-  "filter.map" => fn ->
+  end
+
+  def filter_then_map(list) do
     list
     |> Enum.filter(fn x -> rem(x, 2) == 0 end)
     |> Enum.map(fn x -> x * x end)
-  end,
-  "erlang filter.map" => fn ->
+  end
+
+  def erlang_filter_then_map(list) do
     list = :lists.filter(fn x -> rem(x, 2) == 0 end, list)
     :lists.map(fn x -> x * x end, list)
-  end,
-  "erlang filtermap" => fn ->
+  end
+
+  def erlang_filtermap(list) do
     :lists.filtermap(
       fn x ->
         if rem(x, 2) == 0 do
@@ -51,8 +58,9 @@ Benchee.run(%{
       end,
       list
     )
-  end,
-  "reduce" => fn ->
+  end
+
+  def reduce(list) do
     Enum.reduce(list, [], fn x, acc ->
       if rem(x, 2) == 0 do
         [x * x | acc]
@@ -61,15 +69,91 @@ Benchee.run(%{
       end
     end)
     |> Enum.reverse()
+  end
+
+  def stream_filter_then_map(list) do
+    list
+    |> Stream.filter(fn x -> rem(x, 2) == 0 end)
+    |> Stream.map(fn x -> x * x end)
+    |> Enum.to_list()
+  end
+end
+```
+
+<!-- livebook:{"livebook_object":"cell_input","name":"Max","reactive":true,"type":"number","value":"10000"} -->
+
+```elixir
+{max, _} = IO.gets("Max: ") |> Integer.parse()
+IO.inspect(max, label: "Max")
+list = Enum.to_list(1..max)
+
+Benchee.run(%{
+  "for" => fn ->
+    Kore.for(list)
+  end,
+  "filter.map" => fn ->
+    Kore.filter_then_map(list)
+  end,
+  "erlang filter.map" => fn ->
+    Kore.erlang_filter_then_map(list)
+  end,
+  "erlang filtermap" => fn ->
+    Kore.erlang_filtermap(list)
+  end,
+  "reduce" => fn ->
+    Kore.reduce(list)
   end,
   "custom" => fn ->
-    Custom.filter_map(list, fn x ->
-      if rem(x, 2) == 0 do
-        {true, x * x}
-      else
-        false
-      end
-    end)
+    Kore.custom_run(list)
+  end,
+  "stream filter.map" => fn ->
+    Kore.stream_filter_then_map(list)
   end
 })
+```
+
+## Results
+
+```
+Max: 10000
+Operating System: macOS
+CPU Information: Apple M1
+Number of Available Cores: 8
+Available memory: 8 GB
+Elixir 1.12.0
+Erlang 24.0
+
+Benchmark suite executing with the following configuration:
+warmup: 2 s
+time: 5 s
+memory time: 0 ns
+parallel: 1
+inputs: none specified
+Estimated total run time: 49 s
+
+Benchmarking custom...
+Benchmarking erlang filter.map...
+Benchmarking erlang filtermap...
+Benchmarking filter.map...
+Benchmarking for...
+Benchmarking reduce...
+Benchmarking stream filter.map...
+
+Name                        ips        average  deviation         median         99th %
+reduce                   6.51 K      153.49 μs     ±4.10%         155 μs         165 μs
+custom                   5.80 K      172.46 μs     ±3.44%         171 μs         194 μs
+for                      5.63 K      177.70 μs     ±9.72%         179 μs         207 μs
+erlang filtermap         4.32 K      231.70 μs     ±3.84%         232 μs         260 μs
+erlang filter.map        4.11 K      243.60 μs     ±2.09%         244 μs      257.06 μs
+filter.map               3.95 K      253.12 μs     ±1.75%         253 μs         268 μs
+stream filter.map        1.50 K      665.52 μs     ±8.01%         677 μs         827 μs
+
+Comparison: 
+reduce                   6.51 K
+custom                   5.80 K - 1.12x slower +18.96 μs
+for                      5.63 K - 1.16x slower +24.20 μs
+erlang filtermap         4.32 K - 1.51x slower +78.20 μs
+erlang filter.map        4.11 K - 1.59x slower +90.11 μs
+filter.map               3.95 K - 1.65x slower +99.63 μs
+stream filter.map        1.50 K - 4.34x slower +512.03 μs
 ```
