@@ -1,0 +1,75 @@
+# List Benchmarks
+
+## filter_map
+
+```elixir
+Mix.install([:benchee])
+```
+
+```elixir
+defmodule Custom do
+  def filter_map([], _), do: []
+
+  def filter_map([head | tail], func) do
+    case func.(head) do
+      false ->
+        filter_map(tail, func)
+
+      {true, value} ->
+        [value | filter_map(tail, func)]
+    end
+  end
+end
+```
+
+```elixir
+list = Enum.to_list(1..10_000)
+
+Benchee.run(%{
+  "for" => fn ->
+    for x <- list, rem(x, 2) == 0 do
+      x * x
+    end
+  end,
+  "filter.map" => fn ->
+    list
+    |> Enum.filter(fn x -> rem(x, 2) == 0 end)
+    |> Enum.map(fn x -> x * x end)
+  end,
+  "erlang filter.map" => fn ->
+    list = :lists.filter(fn x -> rem(x, 2) == 0 end, list)
+    :lists.map(fn x -> x * x end, list)
+  end,
+  "erlang filtermap" => fn ->
+    :lists.filtermap(
+      fn x ->
+        if rem(x, 2) == 0 do
+          {true, x * x}
+        else
+          false
+        end
+      end,
+      list
+    )
+  end,
+  "reduce" => fn ->
+    Enum.reduce(list, [], fn x, acc ->
+      if rem(x, 2) == 0 do
+        [x * x | acc]
+      else
+        acc
+      end
+    end)
+    |> Enum.reverse()
+  end,
+  "custom" => fn ->
+    Custom.filter_map(list, fn x ->
+      if rem(x, 2) == 0 do
+        {true, x * x}
+      else
+        false
+      end
+    end)
+  end
+})
+```
