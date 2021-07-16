@@ -80,7 +80,7 @@ defmodule Kore do
 end
 ```
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Max","reactive":true,"type":"number","value":"10000"} -->
+<!-- livebook:{"livebook_object":"cell_input","name":"Max","reactive":true,"type":"number","value":"1000000"} -->
 
 ```elixir
 {max, _} = IO.gets("Max: ") |> Integer.parse()
@@ -110,6 +110,10 @@ Benchee.run(%{
     Kore.stream_filter_then_map(list)
   end
 })
+```
+
+```elixir
+:erlang.system_info(:emu_flavor)
 ```
 
 ## Results
@@ -156,4 +160,50 @@ erlang filtermap         4.32 K - 1.51x slower +78.20 μs
 erlang filter.map        4.11 K - 1.59x slower +90.11 μs
 filter.map               3.95 K - 1.65x slower +99.63 μs
 stream filter.map        1.50 K - 4.34x slower +512.03 μs
+```
+
+### JIT
+
+```
+Max: 10000
+Operating System: macOS
+CPU Information: Apple M1
+Number of Available Cores: 8
+Available memory: 8 GB
+Elixir 1.12.0
+Erlang 25.0-rc0
+
+Benchmark suite executing with the following configuration:
+warmup: 2 s
+time: 5 s
+memory time: 0 ns
+parallel: 1
+inputs: none specified
+Estimated total run time: 49 s
+
+Benchmarking custom...
+Benchmarking erlang filter.map...
+Benchmarking erlang filtermap...
+Benchmarking filter.map...
+Benchmarking for...
+Benchmarking reduce...
+Benchmarking stream filter.map...
+
+Name                        ips        average  deviation         median         99th %
+for                     12.49 K       80.08 μs    ±14.22%       81.99 μs      102.99 μs
+reduce                  11.07 K       90.35 μs    ±24.50%       82.99 μs      157.99 μs
+erlang filtermap         9.24 K      108.23 μs    ±18.70%      103.99 μs      163.99 μs
+custom                   8.95 K      111.79 μs    ±23.80%      100.99 μs      194.91 μs
+erlang filter.map        6.45 K      155.03 μs    ±10.42%      149.99 μs      194.99 μs
+filter.map               6.32 K      158.28 μs    ±13.42%      149.99 μs      253.99 μs
+stream filter.map        2.94 K      339.61 μs    ±14.87%      329.99 μs      478.99 μs
+
+Comparison: 
+for                     12.49 K
+reduce                  11.07 K - 1.13x slower +10.27 μs
+erlang filtermap         9.24 K - 1.35x slower +28.15 μs
+custom                   8.95 K - 1.40x slower +31.71 μs
+erlang filter.map        6.45 K - 1.94x slower +74.95 μs
+filter.map               6.32 K - 1.98x slower +78.20 μs
+stream filter.map        2.94 K - 4.24x slower +259.53 μs
 ```
