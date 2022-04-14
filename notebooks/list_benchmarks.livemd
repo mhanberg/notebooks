@@ -1,3 +1,4 @@
+<!-- vim: set syntax=markdown: -->
 # List Benchmarks
 
 ## filter_map
