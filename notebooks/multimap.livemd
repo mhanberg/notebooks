@@ -24,6 +24,12 @@ defmodule MultiMap do
         do: mapper.(item)
   end
 
+  def run4(lists, mappers) do
+    Enum.zip_reduce(lists, mappers, [], fn list, mapper, acc ->
+      acc ++ Enum.map(list, mapper)
+    end)
+  end
+
   def multi_map([{list, mapper} | rest]) do
     multi_map(list, mapper, rest)
   end
@@ -68,8 +74,9 @@ mappers = Stream.cycle([mapper])
 one = MultiMap.run(lists, mappers)
 two = MultiMap.run2(lists, mappers)
 three = MultiMap.run3(lists, mappers)
+four = MultiMap.run4(lists, mappers)
 
-for m <- [one, two, three], n <- [one, two, three] do
+for m <- [one, two, three, four], n <- [one, two, three, four] do
   unless m == n do
     raise "#{inspect(m)} does not equal #{inspect(n)}"
   end
@@ -79,15 +86,22 @@ end
 ```
 
 ```elixir
-Benchee.run(%{
-  "multimap" => fn ->
-    MultiMap.run(lists, mappers)
-  end,
-  "flat_map" => fn ->
-    MultiMap.run2(lists, mappers)
-  end,
-  "for" => fn ->
-    MultiMap.run3(lists, mappers)
-  end
-})
+Benchee.run(
+  %{
+    "multimap" => fn ->
+      MultiMap.run(lists, mappers)
+    end,
+    "flat_map" => fn ->
+      MultiMap.run2(lists, mappers)
+    end,
+    "for" => fn ->
+      MultiMap.run3(lists, mappers)
+    end,
+    "zip reduce" => fn ->
+      MultiMap.run4(lists, mappers)
+    end
+  },
+  memory_time: 2,
+  reduction_time: 2
+)
 ```
