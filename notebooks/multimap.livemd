@@ -1,18 +1,9 @@
-<!-- vim: set syntax=markdown: -->
-<!-- livebook:{"persist_outputs":true} -->
-
 # Multimap
 
 ## Code
 
 ```elixir
 Mix.install([:benchee, :kino])
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-:ok
 ```
 
 ```elixir
@@ -25,6 +16,12 @@ defmodule MultiMap do
     Enum.flat_map(Enum.zip(lists, mappers), fn {list, mapper} ->
       Enum.map(list, mapper)
     end)
+  end
+
+  def run3(lists, mappers) do
+    for {list, mapper} <- Enum.zip(lists, mappers),
+        item <- list,
+        do: mapper.(item)
   end
 
   def multi_map([{list, mapper} | rest]) do
@@ -43,12 +40,6 @@ defmodule MultiMap do
     [mapper.(item) | multi_map(rest, mapper, remaining_lists)]
   end
 end
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-{:module, MultiMap, <<70, 79, 82, 49, 0, 0, 9, ...>>, {:multi_map, 3}}
 ```
 
 ```elixir
@@ -73,10 +64,18 @@ mapper = fn x -> x <> "!" end
 mappers = Stream.cycle([mapper])
 ```
 
-<!-- livebook:{"output":true} -->
+```elixir
+one = MultiMap.run(lists, mappers)
+two = MultiMap.run2(lists, mappers)
+three = MultiMap.run3(lists, mappers)
 
-```
-#Function<63.127501814/2 in Stream.unfold/2>
+for m <- [one, two, three], n <- [one, two, three] do
+  unless m == n do
+    raise "#{inspect(m)} does not equal #{inspect(n)}"
+  end
+end
+
+"Success"
 ```
 
 ```elixir
@@ -86,221 +85,9 @@ Benchee.run(%{
   end,
   "flat_map" => fn ->
     MultiMap.run2(lists, mappers)
+  end,
+  "for" => fn ->
+    MultiMap.run3(lists, mappers)
   end
 })
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-Operating System: macOS
-CPU Information: Apple M1 Pro
-Number of Available Cores: 10
-Available memory: 16 GB
-Elixir 1.14.0-dev
-Erlang 25.0-rc1
-
-Benchmark suite executing with the following configuration:
-warmup: 2 s
-time: 5 s
-memory time: 0 ns
-reduction time: 0 ns
-parallel: 1
-inputs: none specified
-Estimated total run time: 14 s
-
-Benchmarking flat_map ...
-Benchmarking multimap ...
-
-Name               ips        average  deviation         median         99th %
-multimap        449.50        2.22 ms    ±23.35%        2.09 ms        4.64 ms
-flat_map        416.59        2.40 ms    ±31.05%        2.15 ms        4.95 ms
-
-Comparison: 
-multimap        449.50
-flat_map        416.59 - 1.08x slower +0.176 ms
-```
-
-<!-- livebook:{"output":true} -->
-
-```
-%Benchee.Suite{
-  configuration: %Benchee.Configuration{
-    after_each: nil,
-    after_scenario: nil,
-    assigns: %{},
-    before_each: nil,
-    before_scenario: nil,
-    formatters: [Benchee.Formatters.Console],
-    inputs: nil,
-    load: false,
-    measure_function_call_overhead: false,
-    memory_time: 0.0,
-    parallel: 1,
-    percentiles: '2c',
-    pre_check: false,
-    print: %{benchmarking: true, configuration: true, fast_warning: true},
-    profile_after: false,
-    reduction_time: 0.0,
-    save: false,
-    time: 5.0e9,
-    title: nil,
-    unit_scaling: :best,
-    warmup: 2.0e9
-  },
-  scenarios: [
-    %Benchee.Scenario{
-      after_each: nil,
-      after_scenario: nil,
-      before_each: nil,
-      before_scenario: nil,
-      function: #Function<43.64253313/0 in :erl_eval.expr/6>,
-      input: :__no_input,
-      input_name: :__no_input,
-      job_name: "multimap",
-      memory_usage_data: %Benchee.CollectionData{
-        samples: [],
-        statistics: %Benchee.Statistics{
-          absolute_difference: nil,
-          average: nil,
-          ips: nil,
-          maximum: nil,
-          median: nil,
-          minimum: nil,
-          mode: nil,
-          percentiles: nil,
-          relative_less: nil,
-          relative_more: nil,
-          sample_size: 0,
-          std_dev: nil,
-          std_dev_ips: nil,
-          std_dev_ratio: nil
-        }
-      },
-      name: "multimap",
-      reductions_data: %Benchee.CollectionData{
-        samples: [],
-        statistics: %Benchee.Statistics{
-          absolute_difference: nil,
-          average: nil,
-          ips: nil,
-          maximum: nil,
-          median: nil,
-          minimum: nil,
-          mode: nil,
-          percentiles: nil,
-          relative_less: nil,
-          relative_more: nil,
-          sample_size: 0,
-          std_dev: nil,
-          std_dev_ips: nil,
-          std_dev_ratio: nil
-        }
-      },
-      run_time_data: %Benchee.CollectionData{
-        samples: [1992000, 2169000, 2475000, 1832000, 2007000, 2142000, 2759000, 1795000, 1952000,
-         2129000, 2639000, 1806000, 1972000, 2099000, 2671000, 1887000, 1937000, 2143000, 2804000,
-         1845000, 2043000, 2100000, 2622000, 1838000, 1934000, 2141000, 2687000, 1782000, 2003000,
-         2093000, 2730000, 1936000, 2067000, 2239000, ...],
-        statistics: %Benchee.Statistics{
-          absolute_difference: nil,
-          average: 2224670.2269692924,
-          ips: 449.50482452507924,
-          maximum: 4871000,
-          median: 2.091e6,
-          minimum: 1760000,
-          mode: 2142000,
-          percentiles: %{50 => 2.091e6, 99 => 4.636e6},
-          relative_less: nil,
-          relative_more: nil,
-          sample_size: 2247,
-          std_dev: 519420.60100383655,
-          std_dev_ips: 104.95131515605237,
-          std_dev_ratio: 0.23348206610894076
-        }
-      },
-      tag: nil
-    },
-    %Benchee.Scenario{
-      after_each: nil,
-      after_scenario: nil,
-      before_each: nil,
-      before_scenario: nil,
-      function: #Function<43.64253313/0 in :erl_eval.expr/6>,
-      input: :__no_input,
-      input_name: :__no_input,
-      job_name: "flat_map",
-      memory_usage_data: %Benchee.CollectionData{
-        samples: [],
-        statistics: %Benchee.Statistics{
-          absolute_difference: nil,
-          average: nil,
-          ips: nil,
-          maximum: nil,
-          median: nil,
-          minimum: nil,
-          mode: nil,
-          percentiles: nil,
-          relative_less: nil,
-          relative_more: nil,
-          sample_size: 0,
-          std_dev: nil,
-          std_dev_ips: nil,
-          std_dev_ratio: nil
-        }
-      },
-      name: "flat_map",
-      reductions_data: %Benchee.CollectionData{
-        samples: [],
-        statistics: %Benchee.Statistics{
-          absolute_difference: nil,
-          average: nil,
-          ips: nil,
-          maximum: nil,
-          median: nil,
-          minimum: nil,
-          mode: nil,
-          percentiles: nil,
-          relative_less: nil,
-          relative_more: nil,
-          sample_size: 0,
-          std_dev: nil,
-          std_dev_ips: nil,
-          std_dev_ratio: nil
-        }
-      },
-      run_time_data: %Benchee.CollectionData{
-        samples: [2058000, 2280000, 3367000, 1843000, 2030000, 2307000, 2841000, 1886000, 1991000,
-         2155000, 2808000, 1899000, 2079000, 2191000, 3133000, 1883000, 2050000, 2186000, 4769000,
-         1945000, 2011000, 2191000, 4855000, 1885000, 2018000, 2268000, 2693000, 1850000, 2156000,
-         2230000, 3992000, 1894000, 2111000, ...],
-        statistics: %Benchee.Statistics{
-          absolute_difference: 175772.88392845122,
-          average: 2400443.1108977436,
-          ips: 416.58975189210344,
-          maximum: 6467000,
-          median: 2.15e6,
-          minimum: 1794000,
-          mode: [2167000, 2002000, 1860000, 2171000],
-          percentiles: %{50 => 2.15e6, 99 => 4948959.999999999},
-          relative_less: 0.926774817894887,
-          relative_more: 1.0790107593465257,
-          sample_size: 2083,
-          std_dev: 745434.1977235518,
-          std_dev_ips: 129.36788465084865,
-          std_dev_ratio: 0.31054024748154363
-        }
-      },
-      tag: nil
-    }
-  ],
-  system: %{
-    available_memory: "16 GB",
-    cpu_speed: "Apple M1 Pro",
-    elixir: "1.14.0-dev",
-    erlang: "25.0-rc1",
-    num_cores: 10,
-    os: :macOS
-  }
-}
 ```
