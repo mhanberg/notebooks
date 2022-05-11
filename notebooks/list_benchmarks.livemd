@@ -1,4 +1,5 @@
 <!-- vim: set syntax=markdown: -->
+
 # List Benchmarks
 
 ## filter_map
@@ -78,14 +79,26 @@ defmodule Kore do
     |> Stream.map(fn x -> x * x end)
     |> Enum.to_list()
   end
+
+  def for_uniq(list) do
+    for x <- list, uniq: true do
+      x.name
+    end
+  end
+
+  def map_then_uniq(list) do
+    list
+    |> Enum.map(fn x -> x.name end)
+    |> Enum.uniq()
+  end
 end
 ```
 
-<!-- livebook:{"livebook_object":"cell_input","name":"Max","reactive":true,"type":"number","value":"1000000"} -->
+```elixir
+max = 10_000
+```
 
 ```elixir
-{max, _} = IO.gets("Max: ") |> Integer.parse()
-IO.inspect(max, label: "Max")
 list = Enum.to_list(1..max)
 
 Benchee.run(%{
@@ -114,10 +127,28 @@ Benchee.run(%{
 ```
 
 ```elixir
+employees =
+  for _ <- 1..100_000 do
+    %{name: Enum.random(["Alice", "Bob", "Carol"])}
+  end
+```
+
+```elixir
+Benchee.run(%{
+  "for_uniq" => fn ->
+    Kore.for_uniq(employees)
+  end,
+  "map.uniq" => fn ->
+    Kore.map_then_uniq(employees)
+  end
+})
+```
+
+```elixir
 :erlang.system_info(:emu_flavor)
 ```
 
-## Results
+## Results filtermap
 
 ```
 Max: 10000
@@ -207,4 +238,37 @@ custom                   8.95 K - 1.40x slower +31.71 μs
 erlang filter.map        6.45 K - 1.94x slower +74.95 μs
 filter.map               6.32 K - 1.98x slower +78.20 μs
 stream filter.map        2.94 K - 4.24x slower +259.53 μs
+```
+
+## Results mapuniq
+
+### JIT
+
+```
+Operating System: macOS
+CPU Information: Apple M1
+Number of Available Cores: 8
+Available memory: 8 GB
+Elixir 1.13.4
+Erlang 25.0-rc0
+
+Benchmark suite executing with the following configuration:
+warmup: 2 s
+time: 5 s
+memory time: 0 ns
+reduction time: 0 ns
+parallel: 1
+inputs: none specified
+Estimated total run time: 14 s
+
+Benchmarking for_uniq ...
+Benchmarking map.uniq ...
+
+Name               ips        average  deviation         median         99th %
+for_uniq        332.13        3.01 ms     ±5.67%        2.99 ms        3.31 ms
+map.uniq        240.29        4.16 ms     ±3.06%        4.14 ms        4.52 ms
+
+Comparison: 
+for_uniq        332.13
+map.uniq        240.29 - 1.38x slower +1.15 ms
 ```
